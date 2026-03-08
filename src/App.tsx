@@ -143,7 +143,7 @@ export default function App() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) return;
+      if (!origin.endsWith('.run.app') && !origin.includes('localhost') && !origin.endsWith('.vercel.app')) return;
 
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
         const { access_token } = event.data.payload;
