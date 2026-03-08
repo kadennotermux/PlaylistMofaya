@@ -49,8 +49,8 @@ export default function App() {
   const [clientId, setClientId] = useState<string | null>(null);
   const [redirectUri, setRedirectUri] = useState<string | null>(null);
   const [show403Modal, setShow403Modal] = useState(false);
-  const [isDemoMode, setIsDemoMode] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [geminiStatus, setGeminiStatus] = useState<'checking' | 'active' | 'error'>('checking');
 
   // Exponential Backoff Utility
   const fetchWithBackoff = async (url: string, options: RequestInit, maxRetries = 3): Promise<Response> => {
@@ -85,6 +85,31 @@ export default function App() {
 
   // Initialize Gemini
   const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+
+  // Check Gemini Status
+  useEffect(() => {
+    const checkGemini = async () => {
+      if (!process.env.GEMINI_API_KEY) {
+        setGeminiStatus('error');
+        return;
+      }
+      try {
+        const response = await genAI.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: "Say 'ok'",
+        });
+        if (response.text) {
+          setGeminiStatus('active');
+        } else {
+          setGeminiStatus('error');
+        }
+      } catch (err) {
+        console.error('Gemini check failed:', err);
+        setGeminiStatus('error');
+      }
+    };
+    checkGemini();
+  }, []);
 
   // Check Configuration
   useEffect(() => {
@@ -189,18 +214,7 @@ export default function App() {
   const handleLogout = () => {
     setAccessToken(null);
     setUser(null);
-    setIsDemoMode(false);
     localStorage.removeItem('youtube_access_token');
-  };
-
-  const enterDemoMode = () => {
-    setIsDemoMode(true);
-    setUser({
-      display_name: 'Demo User',
-      id: 'demo-user',
-      images: [{ url: 'https://picsum.photos/seed/user/200/200' }]
-    });
-    setAccessToken('demo-token');
   };
 
   const searchTracks = async (e: React.FormEvent) => {
@@ -214,38 +228,6 @@ export default function App() {
 
     setIsSearching(true);
     setError(null);
-
-    if (isDemoMode) {
-      // Mock Search Results
-      setTimeout(() => {
-        const mockResults: YouTubeVideo[] = [
-          {
-            id: '1',
-            title: `${query} (Official Video)`,
-            channelTitle: 'The Demo Band',
-            thumbnail: 'https://picsum.photos/seed/album1/300/300',
-            videoId: 'demo1'
-          },
-          {
-            id: '2',
-            title: `${query} - Live Performance`,
-            channelTitle: 'DJ Mock',
-            thumbnail: 'https://picsum.photos/seed/album2/300/300',
-            videoId: 'demo2'
-          },
-          {
-            id: '3',
-            title: `Songs like ${query}`,
-            channelTitle: 'PlaylistMoto AI',
-            thumbnail: 'https://picsum.photos/seed/album3/300/300',
-            videoId: 'demo3'
-          }
-        ];
-        setSearchResults(mockResults);
-        setIsSearching(false);
-      }, 800);
-      return;
-    }
 
     try {
       const res = await fetchWithBackoff(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=5&videoCategoryId=10`, {
@@ -292,23 +274,6 @@ export default function App() {
     setIsGenerating(true);
     setCreatedPlaylistUrl(null);
     setError(null);
-
-    if (isDemoMode) {
-      // Mock Recommendations
-      setTimeout(() => {
-        const mockRecs: YouTubeVideo[] = Array.from({ length: 18 }).map((_, i) => ({
-          id: `rec-${i}`,
-          title: `Recommended Video ${i + 1}`,
-          channelTitle: `Artist ${i + 1}`,
-          thumbnail: `https://picsum.photos/seed/rec${i}/300/300`,
-          videoId: `rec-${i}`
-        }));
-        setRecommendations(mockRecs);
-        setPlaylistName(`PlaylistMoto: Inspired by ${video.title}`);
-        setIsGenerating(false);
-      }, 1500);
-      return;
-    }
 
     try {
       // Step 1: Use Gemini to suggest similar tracks
@@ -394,14 +359,6 @@ export default function App() {
     setIsCreatingPlaylist(true);
     setError(null);
 
-    if (isDemoMode) {
-      setTimeout(() => {
-        setCreatedPlaylistUrl('https://music.youtube.com');
-        setIsCreatingPlaylist(false);
-      }, 2000);
-      return;
-    }
-
     try {
       // Create Playlist
       const createRes = await fetchWithBackoff(`https://www.googleapis.com/youtube/v3/playlists?part=snippet,status`, {
@@ -474,7 +431,16 @@ export default function App() {
             </div>
             <div className="flex flex-col">
               <h1 className="text-xl font-bold tracking-tight font-display leading-none">PlaylistMoto</h1>
-              {isDemoMode && <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest">Demo Mode</span>}
+              <div className="flex items-center gap-1.5 mt-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${
+                  geminiStatus === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 
+                  geminiStatus === 'error' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 
+                  'bg-white/20 animate-pulse'
+                }`} />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                  Gemini {geminiStatus === 'active' ? 'Active' : geminiStatus === 'error' ? 'Offline' : 'Checking...'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -507,23 +473,6 @@ export default function App() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-12">
-        {isDemoMode && (
-          <div className="mb-8 p-4 bg-red-600/10 border border-red-600/20 rounded-2xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-red-600" />
-              <p className="text-sm text-red-200">
-                <span className="font-bold">Demo Mode Active:</span> You are seeing simulated music data. No Spotify Premium required!
-              </p>
-            </div>
-            <button 
-              onClick={handleLogout}
-              className="text-xs font-bold uppercase tracking-widest text-red-600 hover:text-red-500 transition-colors"
-            >
-              Exit Demo
-            </button>
-          </div>
-        )}
-
         {isConfigured === false && (
           <div className="mb-12 p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-200">
             <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
@@ -560,12 +509,6 @@ export default function App() {
                   className="px-8 py-4 bg-red-600 hover:bg-red-500 text-white font-bold text-lg rounded-full transition-all shadow-xl shadow-red-600/20 active:scale-95"
                 >
                   Get Started with YouTube
-                </button>
-                <button 
-                  onClick={enterDemoMode}
-                  className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold text-lg rounded-full transition-all border border-white/10 active:scale-95"
-                >
-                  Try Demo Mode
                 </button>
               </div>
             </motion.div>
