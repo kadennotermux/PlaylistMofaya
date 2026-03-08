@@ -480,12 +480,17 @@ export default function App() {
               YouTube API Keys Missing
             </h3>
             <p className="text-sm opacity-80 mb-4">
-              To use this app, you need to set your Google Client ID and Secret in the AI Studio Secrets panel.
+              To use this app, you need to set your Google Client ID and Secret in your deployment environment variables (Vercel or AI Studio).
             </p>
             <div className="bg-black/20 p-4 rounded-xl font-mono text-xs space-y-1">
-              <p>GOOGLE_CLIENT_ID</p>
-              <p>GOOGLE_CLIENT_SECRET</p>
+              <p className="flex justify-between"><span>GOOGLE_CLIENT_ID</span> <span className={clientId ? "text-emerald-500" : "text-red-500"}>{clientId ? "✅ Set" : "❌ Missing"}</span></p>
+              <p className="flex justify-between"><span>GOOGLE_CLIENT_SECRET</span> <span className="text-white/40 italic">Hidden for security</span></p>
             </div>
+            {window.location.hostname.includes('vercel.app') && (
+              <p className="mt-4 text-xs text-amber-200/60 italic">
+                Tip: Since you are on Vercel, make sure these are added in your Vercel Project Settings and that you have redeployed.
+              </p>
+            )}
           </div>
         )}
 
