@@ -1,5 +1,5 @@
 {
-  "name": "PlaylistMoto: AI Spotify Playlist Generator",
-  "description": "Generate personalized Spotify playlists based on your favorite songs using AI and Spotify's recommendation engine.",
+  "name": "PlaylistMoto: AI YouTube Playlist Generator",
+  "description": "Find a song you love, and let AI build a custom YouTube playlist for you in seconds. Powered by Google Gemini.",
   "requestFramePermissions": []
 }
