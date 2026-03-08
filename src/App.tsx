@@ -89,7 +89,9 @@ export default function App() {
   // Check Gemini Status
   useEffect(() => {
     const checkGemini = async () => {
-      if (!process.env.GEMINI_API_KEY) {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey || apiKey === 'undefined') {
+        console.error('Gemini API Key is missing or undefined in the browser.');
         setGeminiStatus('error');
         return;
       }
@@ -100,11 +102,17 @@ export default function App() {
         });
         if (response.text) {
           setGeminiStatus('active');
+          console.log('Gemini connection successful');
         } else {
+          console.error('Gemini returned an empty response');
           setGeminiStatus('error');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Gemini check failed:', err);
+        // Check for specific error types if possible
+        if (err.message?.includes('API_KEY_INVALID')) {
+          console.error('The provided Gemini API Key is invalid.');
+        }
         setGeminiStatus('error');
       }
     };
