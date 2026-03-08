@@ -1,0 +1,5 @@
+{
+  "name": "PlaylistMoto: AI Spotify Playlist Generator",
+  "description": "Generate personalized Spotify playlists based on your favorite songs using AI and Spotify's recommendation engine.",
+  "requestFramePermissions": []
+}
